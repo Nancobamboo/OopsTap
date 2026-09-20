@@ -511,6 +511,11 @@ public class BeatTimelineJson
         {
             return BeatTimes[(int)beatIndex];
         }
+        if (BeatTimes != null && BeatTimes.Count > 0 && beatIndex >= BeatTimes.Count)
+        {
+            int lastBeat = BeatTimes.Count - 1;
+            return BeatTimes[lastBeat] + (beatIndex - lastBeat) * SecondsPerBeat;
+        }
         return OffsetSeconds + beatIndex * SecondsPerBeat;
     }
 
@@ -521,8 +526,47 @@ public class BeatTimelineJson
 
     public int GetNearestBeatIndex(double timeSeconds)
     {
-        double b = GetBeatOfTime(timeSeconds);
-        return (int)System.Math.Round(b);
+        if (BeatTimes == null || BeatTimes.Count == 0)
+        {
+            return Math.Max(-1, (int)Math.Floor(GetBeatOfTime(timeSeconds) + 0.5));
+        }
+
+        int beatIndex = GetBeatIndexAtTime(timeSeconds);
+        if (beatIndex < 0)
+        {
+            return Math.Max(-1, (int)Math.Floor((timeSeconds - BeatTimes[0]) / SecondsPerBeat + 0.5));
+        }
+        if (beatIndex >= BeatTimes.Count - 1)
+        {
+            return beatIndex + (int)Math.Floor((timeSeconds - BeatTimes[beatIndex]) / SecondsPerBeat + 0.5);
+        }
+
+        double midpoint = ((double)BeatTimes[beatIndex] + BeatTimes[beatIndex + 1]) * 0.5;
+        return timeSeconds < midpoint ? beatIndex : beatIndex + 1;
+    }
+
+    public int GetBeatIndexAtTime(double timeSeconds)
+    {
+        if (BeatTimes == null || BeatTimes.Count == 0)
+        {
+            return Math.Max(-1, (int)Math.Floor(GetBeatOfTime(timeSeconds)));
+        }
+
+        int low = 0;
+        int high = BeatTimes.Count;
+        while (low < high)
+        {
+            int middle = low + (high - low) / 2;
+            if (BeatTimes[middle] <= timeSeconds)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+        return low - 1;
     }
 }
 
@@ -542,5 +586,3 @@ public class BeatUnit
         return AnimList == null || AnimList.Count == 0;
     }
 }
-
-
